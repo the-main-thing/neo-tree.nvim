@@ -611,14 +611,15 @@ end
 
 ---Moves a node to a new location, using typed input.
 ---@param state table The state of the source
----@param callback function The callback to call when the command is done. Called with the parent node as the argument.
-M.move = function(state, callback)
+---@param callback_after function The callback to call when the command is done. Called with the parent node as the argument.
+---@param callback_before function The callback to call when the command is done. Called with the parent node as the argument.
+M.move = function(state, callback_after, callback_before)
   local node = state.tree:get_node()
   if node.type == "message" then
     return
   end
   local using_root_directory = get_using_root_directory(state)
-  fs_actions.move_node(node.path, nil, callback, using_root_directory)
+  fs_actions.move_node(node.path, nil, callback_after, using_root_directory, callback_before)
 end
 
 M.delete = function(state, callback)

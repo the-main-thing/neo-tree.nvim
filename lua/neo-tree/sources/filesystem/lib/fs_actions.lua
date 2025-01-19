@@ -170,7 +170,7 @@ local function get_unused_name(
 end
 
 -- Move Node
-M.move_node = function(source, destination, callback, using_root_directory)
+M.move_node = function(source, destination, callback_after, using_root_directory, callback_before)
   log.trace(
     "Moving node: ",
     source,
@@ -183,22 +183,24 @@ M.move_node = function(source, destination, callback, using_root_directory)
   get_unused_name(destination or source, using_root_directory, function(dest)
     local function move_file()
       create_all_parents(dest)
-      loop.fs_rename(source, dest, function(err)
-        if err then
-          log.error("Could not move the files from", source, "to", dest, ":", err)
-          return
-        end
-        vim.schedule(function()
-          rename_buffer(source, dest)
-        end)
-        vim.schedule(function()
-          events.fire_event(events.FILE_MOVED, {
-            source = source,
-            destination = dest,
-          })
-          if callback then
-            callback(source, dest)
+      callback_before(source, dest, function()
+        loop.fs_rename(source, dest, function(err)
+          if err then
+            log.error("Could not move the files from", source, "to", dest, ":", err)
+            return
           end
+          vim.schedule(function()
+            rename_buffer(source, dest)
+          end)
+          vim.schedule(function()
+            events.fire_event(events.FILE_MOVED, {
+              source = source,
+              destination = dest,
+            })
+            if callback_after then
+              callback_after(source, dest)
+            end
+          end)
         end)
       end)
     end

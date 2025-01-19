@@ -50,8 +50,61 @@ M.cut_to_clipboard_visual = function(state, selected_nodes)
   cc.cut_to_clipboard_visual(state, selected_nodes, utils.wrap(redraw, state))
 end
 
+local function ends_with(str, suffix)
+  return string.sub(str, -string.len(suffix)) == suffix
+end
+
+local function get_ts_client()
+  local clients = vim.lsp.get_clients()
+  if #clients == 0 then
+    return nil
+  end
+  for _, client in ipairs(clients) do
+    if client.name == "ts_ls" then
+      return client
+    end
+  end
+  return nil
+end
+
+local function on_before_move(source, dest, callback)
+  local ts = ends_with(source, ".tsx")
+    or ends_with(source, ".ts")
+    or ends_with(dest, ".tsx")
+    or ends_with(dest, ".ts")
+    or ends_with(dest, ".js")
+    or ends_with(dest, ".jsx")
+  local client = get_ts_client()
+  if ts ~= false then
+    callback(source, dest)
+    return
+  end
+  if client == nil then
+    vim.notify("ts_ls is inactive", vim.log.levels.ERROR)
+    return
+  end
+  local params = {
+    files = {
+      { oldUri = vim.uri_from_fname(source), newUri = vim.uri_from_fname(dest) },
+    },
+  }
+
+  client.request("workspace/willRenameFiles", params, function(err, result)
+    if err then
+      vim.notify("Error sending applyRenameFile" .. vim.inspect(err), vim.log.levels.ERROR)
+      return callback(source, dest)
+    end
+    if result then
+      vim.lsp.util.apply_workspace_edit(result, "utf-8")
+    else
+      vim.notify("No changes required for the rename.", vim.log.levels.INFO)
+    end
+    return callback(source, dest)
+  end)
+end
+
 M.move = function(state)
-  cc.move(state, utils.wrap(fs.focus_destination_children, state))
+  cc.move(state, utils.wrap(fs.focus_destination_children, state), on_before_move)
 end
 
 ---Pastes all items from the clipboard to the current directory.
