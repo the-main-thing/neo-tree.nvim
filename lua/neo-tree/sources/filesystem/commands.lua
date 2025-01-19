@@ -89,12 +89,14 @@ local function on_before_move(source, dest, callback)
     },
   }
 
+	vim.notify("making willRename request")
   client.request("workspace/willRenameFiles", params, function(err, result)
     if err then
       vim.notify("Error sending applyRenameFile" .. vim.inspect(err), vim.log.levels.ERROR)
       return callback(source, dest)
     end
     if result then
+			vim.notify("applying changes")
       vim.lsp.util.apply_workspace_edit(result, "utf-8")
     else
       vim.notify("No changes required for the rename.", vim.log.levels.INFO)
