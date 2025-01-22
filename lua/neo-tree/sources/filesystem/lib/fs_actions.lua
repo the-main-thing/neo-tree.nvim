@@ -179,6 +179,11 @@ M.move_node = function(source, destination, callback_after, using_root_directory
     ", using root directory: ",
     using_root_directory
   )
+  if callback_before == nil then
+    callback_before = function(src, dst, callback)
+      callback(src, dst)
+    end
+  end
   local _, name = utils.split_path(source)
   get_unused_name(destination or source, using_root_directory, function(dest)
     local function move_file()
